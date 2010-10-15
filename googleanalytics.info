@@ -3,7 +3,7 @@ name = "Google Analytics"
 description = Adds Google Analytics javascript tracking code to all your site's pages.
 
 ; Information added by drupal.org packaging script on 2010-09-19
-version = "5.x-1.x-dev"
+version = "5.x-1.x-dev-async"
 project = "google_analytics"
 datestamp = "1284898185"
 

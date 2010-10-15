@@ -62,8 +62,19 @@ function googleanalytics_menu($maycache) {
         drupal_add_js($source, 'module', $scope);
       }
       else {
-        $script = 'var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");';
-        $script .= 'document.write(unescape("%3Cscript src=\'" + gaJsHost + "google-analytics.com/'. $js_file .'\' type=\'text/javascript\'%3E%3C/script%3E"));';
+        if($ga_version == GA_VERSION_ASYNC) {
+          // async snippet (http://code.google.com/intl/fr/apis/analytics/docs/tracking/asyncTracking.html)
+          $script = "(function() {\n";
+          $script .= "var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;\n";
+          $script .= "ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';\n";
+          $script .= "var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);\n";
+          $script .= "})();\n";
+        }
+        else {
+          // traditional or legacy snippet (http://code.google.com/apis/analytics/docs/tracking/gaTrackingOverview.html)
+          $script = 'var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");';
+          $script .= 'document.write(unescape("%3Cscript src=\'" + gaJsHost + "google-analytics.com/'. $js_file .'\' type=\'text/javascript\'%3E%3C/script%3E"));';
+        }
         drupal_add_js($script, 'inline', $scope);
       }
 
