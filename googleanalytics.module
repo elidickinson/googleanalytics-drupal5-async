@@ -181,51 +181,51 @@ function googleanalytics_footer($main = 0) {
     // Which version of code should be used
 //    $script = 'try{';
     switch($ga_version) {
-    	case GA_VERSION_LEGACY:
-	      $script .= '_uacct = '. drupal_to_js($id) .';';
-	      if (!empty($segmentation)) {
-	        $script .= $segmentation;
-	      }
-	      if (!empty($codesnippet_before)) {
-	        $script .= $codesnippet_before . "\n";
-	      }
-	      $script .= 'urchinTracker('. $url_custom .');';
-	      if (!empty($codesnippet_after)) {
-	        $script .= $codesnippet_after . "\n";
-	      }
-	      break;
-	    case GA_VERSION_TRADITIONAL:
-	      $script .= 'var pageTracker = _gat._getTracker('. drupal_to_js($id) .');';
-	      if (!empty($segmentation)) {
-	        $script .= $segmentation;
-	      }
-	      if (!empty($codesnippet_before)) {
-	        $script .= $codesnippet_before . "\n";
-	      }
-	      $script .= 'pageTracker._trackPageview('. $url_custom .');';
-	      if (!empty($codesnippet_after)) {
-	        $script .= $codesnippet_after . "\n";
-	      }
-	    	break;
-	    case GA_VERSION_ASYNC:
-	    	$script .= 'var _gaq = _gaq || [];';
-	      $script .= '_gaq.push([\'_setAccount\', \''. drupal_to_js($id) .'\']);';
-	      if (!empty($segmentation)) {
-	        $script .= $segmentation;
-	      }
-	      if (!empty($codesnippet_before)) {
-	        $script .= $codesnippet_before . "\n";
-	      }
-	      $script .= '_gaq.push([\'_trackPageview\']);';
-	      if (!empty($codesnippet_after)) {
-	        $script .= $codesnippet_after . "\n";
-	      }
-	    	break;
+      case GA_VERSION_LEGACY:
+        $script .= '_uacct = '. drupal_to_js($id) .';';
+        if (!empty($segmentation)) {
+          $script .= $segmentation;
+        }
+        if (!empty($codesnippet_before)) {
+          $script .= $codesnippet_before . "\n";
+        }
+        $script .= 'urchinTracker('. $url_custom .');';
+        if (!empty($codesnippet_after)) {
+          $script .= $codesnippet_after . "\n";
+        }
+        break;
+      case GA_VERSION_TRADITIONAL:
+        $script .= 'var pageTracker = _gat._getTracker('. drupal_to_js($id) .');';
+        if (!empty($segmentation)) {
+          $script .= $segmentation;
+        }
+        if (!empty($codesnippet_before)) {
+          $script .= $codesnippet_before . "\n";
+        }
+        $script .= 'pageTracker._trackPageview('. $url_custom .');';
+        if (!empty($codesnippet_after)) {
+          $script .= $codesnippet_after . "\n";
+        }
+        break;
+      case GA_VERSION_ASYNC:
+        $script .= 'var _gaq = _gaq || [];';
+        $script .= '_gaq.push([\'_setAccount\', \''. drupal_to_js($id) .'\']);';
+        if (!empty($segmentation)) {
+          $script .= $segmentation;
+        }
+        if (!empty($codesnippet_before)) {
+          $script .= $codesnippet_before . "\n";
+        }
+        $script .= '_gaq.push([\'_trackPageview\']);';
+        if (!empty($codesnippet_after)) {
+          $script .= $codesnippet_after . "\n";
+        }
+        break;
     }
 
 //    $script .= '} catch(err) {}';
-		
-		$scope = variable_get('googleanalytics_js_scope', 'footer');
+    
+    $scope = variable_get('googleanalytics_js_scope', 'footer');
     
     drupal_add_js($script, 'inline', $scope);
   }
