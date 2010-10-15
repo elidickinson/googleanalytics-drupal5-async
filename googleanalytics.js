@@ -23,7 +23,12 @@ Drupal.gaTrackerAttach = function(context) {
           else {
             // Download link clicked.
             var extension = isDownload.exec(this.href);
-            pageTracker._trackEvent("Downloads", extension[1].toUpperCase(), this.href.replace(isInternal, ''));
+            if(ga.AsyncVersion) {
+              _gaq.push(["_trackEvent", "Downloads", extension[1].toUpperCase(), this.href.replace(isInternal, '')]);
+            }
+            else {
+              pageTracker._trackEvent("Downloads", extension[1].toUpperCase(), this.href.replace(isInternal, ''));
+            }
           }
         }
         else if (isInternalSpecial.test(this.href)) {
@@ -32,7 +37,12 @@ Drupal.gaTrackerAttach = function(context) {
             urchinTracker(this.href.replace(isInternal, ''));
           }
           else {
-            pageTracker._trackPageview(this.href.replace(isInternal, ''));
+            if(ga.AsyncVersion) {
+              _gaq.push(["_trackPageview", this.href.replace(isInternal, '')]);
+            }
+            else {
+              pageTracker._trackPageview(this.href.replace(isInternal, ''));
+            }
           }
         }
       }
@@ -43,7 +53,12 @@ Drupal.gaTrackerAttach = function(context) {
             urchinTracker('/mailto/' + this.href.substring(7));
           }
           else {
-            pageTracker._trackEvent("Mails", "Click", this.href.substring(7));
+            if(ga.AsyncVersion) {
+              _gaq.push(["_trackEvent", "Mails", "Click", this.href.substring(7)]);
+            }
+            else {
+              pageTracker._trackEvent("Mails", "Click", this.href.substring(7));
+            }
           }
         }
         else if (ga.trackOutgoing && this.href) {
@@ -52,7 +67,12 @@ Drupal.gaTrackerAttach = function(context) {
             urchinTracker('/outgoing/' + this.href.replace(/^(https?|ftp|news|nntp|telnet|irc|ssh|sftp|webcal):\/\//i, '').split('/').join('--'));
           }
           else {
-            pageTracker._trackEvent("Outgoing links", "Click", this.href);
+            if(ga.AsyncVersion) {
+              _gaq.push(["_trackEvent", "Outgoing links", "Click", this.href]);
+            }
+            else {
+              pageTracker._trackEvent("Outgoing links", "Click", this.href);
+            }
           }
         }
       }
