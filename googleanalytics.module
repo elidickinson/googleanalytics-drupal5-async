@@ -11,6 +11,11 @@
  */
 
 define('GA_TRACKFILES_EXTENSIONS', '7z|aac|arc|arj|asf|asx|avi|bin|csv|doc|exe|flv|gif|gz|gzip|hqx|jar|jpe?g|js|mp(2|3|4|e?g)|mov(ie)?|msi|msp|pdf|phps|png|ppt|qtm?|ra(m|r)?|sea|sit|tar|tgz|torrent|txt|wav|wma|wmv|wpd|xls|xml|z|zip');
+define('GA_VERSION_TRADITIONAL',0);
+define('GA_VERSION_LEGACY',1);
+define('GA_VERSION_ASYNC',2);
+
+
 
 function googleanalytics_help($section) {
   switch ($section) {
@@ -46,11 +51,11 @@ function googleanalytics_menu($maycache) {
     // 3. Check if we should track the currently active user's role.
     if (!empty($id) && _googleanalytics_visibility_pages() && _googleanalytics_visibility_user($user)) {
       // Use the old version of Google Analytics?
-      $legacy_version = variable_get('googleanalytics_legacy_version', 0);
+      $ga_version = variable_get('googleanalytics_version', 0);
       $scope = variable_get('googleanalytics_js_scope', 'footer');
 
       // Should a local cached copy of urchin.js or ga.js be used?
-      $js_file = ($legacy_version) ? 'urchin.js' : 'ga.js';
+      $js_file = ($ga_version == GA_VERSION_LEGACY) ? 'urchin.js' : 'ga.js';
       $url = 'http://www.google-analytics.com/'. $js_file;
 
       if (variable_get('googleanalytics_cache', 0) && (variable_get('file_downloads', FILE_DOWNLOADS_PUBLIC) == FILE_DOWNLOADS_PUBLIC) && $source = _googleanalytics_cache($url)) {
@@ -76,7 +81,7 @@ function googleanalytics_menu($maycache) {
       }
       if (!empty($link_settings)) {
         // TODO: Why is this legacy_version added as data type string and not integer to settings?
-        $link_settings['LegacyVersion'] = $legacy_version ? 1 : 0;
+        $link_settings['LegacyVersion'] = ($ga_version == GA_VERSION_LEGACY) ? 1 : 0;
         drupal_add_js(array('googleanalytics' => $link_settings), 'setting', 'header');
         drupal_add_js(drupal_get_path('module', 'googleanalytics') .'/googleanalytics.js', 'module', $scope);
       }
@@ -105,7 +110,7 @@ function googleanalytics_footer($main = 0) {
   if (!empty($id) && _googleanalytics_visibility_pages() && _googleanalytics_visibility_user($user)) {
 
     // Use the old version of Google Analytics?
-    $legacy_version = variable_get('googleanalytics_legacy_version', 0);
+    $ga_version = variable_get('googleanalytics_version', 0);
 
     // Add User profile segmentation values
     if (is_array($profile_fields = variable_get('googleanalytics_segmentation', '')) && ($user->uid > 0)) {
@@ -126,10 +131,16 @@ function googleanalytics_footer($main = 0) {
       // Only show segmentation variable if there are specified fields.
       $segmentation = '';
       if (count($fields) > 0) {
-        if ($legacy_version) {
-          $segmentation = '__utmSetVar('. drupal_to_js(implode(':', $fields)) .');';
-        } else {
-          $segmentation = 'pageTracker._setVar('. drupal_to_js(implode(':', $fields)) .');';
+        switch($ga_version) {
+          case GA_VERSION_LEGACY:
+            $segmentation = '__utmSetVar('. drupal_to_js(implode(':', $fields)) .');';
+            break;
+          case GA_VERSION_TRADITIONAL:
+            $segmentation = 'pageTracker._setVar('. drupal_to_js(implode(':', $fields)) .');';
+            break;
+          case GA_VERSION_ASYNC:
+            $segmentation = '_gaq.push(["_setVar", ' . drupal_to_js(implode(':', $fields)) . ']);';
+            break;
         }
       }
     }
@@ -144,7 +155,7 @@ function googleanalytics_footer($main = 0) {
     if (function_exists('drupal_get_headers')) {
       $headers = drupal_get_headers();
       if (strstr($headers, '403 Forbidden')) {
-        if ($legacy_version) {
+        if ($ga_version == GA_VERSION_LEGACY) {
           // See http://www.google.com/support/analytics/bin/answer.py?answer=86928
           $url_custom = '"/403.html?page=" + _udl.pathname + _udl.search';
         }
@@ -154,7 +165,7 @@ function googleanalytics_footer($main = 0) {
         }
       }
       elseif (strstr($headers, '404 Not Found')) {
-        if ($legacy_version) {
+        if ($ga_version == GA_VERSION_LEGACY) {
           $url_custom = '"/404.html?page=" + _udl.pathname + _udl.search';
         }
         else {
@@ -167,37 +178,56 @@ function googleanalytics_footer($main = 0) {
     $codesnippet_before = variable_get('googleanalytics_codesnippet_before', '');
     $codesnippet_after = variable_get('googleanalytics_codesnippet_after', '');
 
-    // Should the legacy code be used?
-    $script = 'try{';
-    if ($legacy_version) {
-      $script .= '_uacct = '. drupal_to_js($id) .';';
-      if (!empty($segmentation)) {
-        $script .= $segmentation;
-      }
-      if (!empty($codesnippet_before)) {
-        $script .= $codesnippet_before;
-      }
-      $script .= 'urchinTracker('. $url_custom .');';
-      if (!empty($codesnippet_after)) {
-        $script .= $codesnippet_after;
-      }
+    // Which version of code should be used
+//    $script = 'try{';
+    switch($ga_version) {
+    	case GA_VERSION_LEGACY:
+	      $script .= '_uacct = '. drupal_to_js($id) .';';
+	      if (!empty($segmentation)) {
+	        $script .= $segmentation;
+	      }
+	      if (!empty($codesnippet_before)) {
+	        $script .= $codesnippet_before . "\n";
+	      }
+	      $script .= 'urchinTracker('. $url_custom .');';
+	      if (!empty($codesnippet_after)) {
+	        $script .= $codesnippet_after . "\n";
+	      }
+	      break;
+	    case GA_VERSION_TRADITIONAL:
+	      $script .= 'var pageTracker = _gat._getTracker('. drupal_to_js($id) .');';
+	      if (!empty($segmentation)) {
+	        $script .= $segmentation;
+	      }
+	      if (!empty($codesnippet_before)) {
+	        $script .= $codesnippet_before . "\n";
+	      }
+	      $script .= 'pageTracker._trackPageview('. $url_custom .');';
+	      if (!empty($codesnippet_after)) {
+	        $script .= $codesnippet_after . "\n";
+	      }
+	    	break;
+	    case GA_VERSION_ASYNC:
+	    	$script .= 'var _gaq = _gaq || [];';
+	      $script .= '_gaq.push([\'_setAccount\', \''. drupal_to_js($id) .'\']);';
+	      if (!empty($segmentation)) {
+	        $script .= $segmentation;
+	      }
+	      if (!empty($codesnippet_before)) {
+	        $script .= $codesnippet_before . "\n";
+	      }
+	      $script .= '_gaq.push([\'_trackPageview\']);';
+	      if (!empty($codesnippet_after)) {
+	        $script .= $codesnippet_after . "\n";
+	      }
+	    	break;
     }
-    else {
-      $script .= 'var pageTracker = _gat._getTracker('. drupal_to_js($id) .');';
-      if (!empty($segmentation)) {
-        $script .= $segmentation;
-      }
-      if (!empty($codesnippet_before)) {
-        $script .= $codesnippet_before;
-      }
-      $script .= 'pageTracker._trackPageview('. $url_custom .');';
-      if (!empty($codesnippet_after)) {
-        $script .= $codesnippet_after;
-      }
-    }
-    $script .= '} catch(err) {}';
 
-    drupal_add_js($script, 'inline', 'footer');
+//    $script .= '} catch(err) {}';
+		
+		$scope = variable_get('googleanalytics_js_scope', 'footer');
+    
+    drupal_add_js($script, 'inline', $scope);
   }
 }
 
@@ -414,12 +444,13 @@ function googleanalytics_admin_settings_form() {
     '#collapsed' => TRUE,
   );
 
-  $form['advanced']['googleanalytics_legacy_version'] = array(
+  $form['advanced']['googleanalytics_version'] = array(
     '#type' => 'radios',
     '#title' => t('Google Analytics version used'),
-    '#default_value' => variable_get('googleanalytics_legacy_version', 0),
+    '#default_value' => variable_get('googleanalytics_version', 0),
     '#options' => array(
-      0 => t('Latest (ga.js) tracking code'),
+      0 => t('Traditional (ga.js) tracking code'),
+      2 => t('Async (ga.js) tracking code'),
       1 => t('Legacy (urchin.js) tracking code')
     ),
     '#description' => t('<a href="@ga_js_url">On December 13, 2007, Google rolled out a new API</a> for its tracking code, and suggests all new sites to use this code. You should only use the older legacy code, if you have custom tracking code tied to that API. Otherwise it is suggested you use the latest API, as the legacy code will not receive feature updates and is not compatible with new features.', array('@ga_js_url' => 'http://analytics.blogspot.com/2007/12/announcing-new-graphing-tools-gajs.html')),
@@ -484,7 +515,7 @@ function googleanalytics_admin_settings_form() {
   $form['advanced']['googleanalytics_js_scope'] = array(
     '#type' => 'select',
     '#title' => t('JavaScript scope'),
-    '#description' => t("<strong>Warning:</strong> Google recommends adding the external JavaScript files to footer for performance reasons."),
+    '#description' => t("<strong>Warning:</strong> Google recommends adding the async version to header, but traditional version to footer for performance reasons."),
     '#options' => array(
       'footer' => t('Footer'),
       'header' => t('Header'),
