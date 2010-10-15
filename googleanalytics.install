@@ -266,13 +266,13 @@ function googleanalytics_update_6008() {
  */
 function googleanalytics_update_6009() {
   $ret = array();
-	
-	$legacy_mode = variable_get('googleanalytics_legacy_version',-1);
-	if($legacy_mode == -1) {
-		variable_del('googleanalytics_legacy_version');
-		variable_set('googleanalytics_version', $legacy_mode ? 1 : 0)
-		$ret[] = array('success' => TRUE, 'query' => 'Removed legacy version of code');
-	}
+  
+  $legacy_mode = variable_get('googleanalytics_legacy_version',-1);
+  if($legacy_mode != -1) {
+    variable_del('googleanalytics_legacy_version');
+    variable_set('googleanalytics_version', $legacy_mode ? 1 : 0);
+    $ret[] = array('success' => TRUE, 'query' => 'Renamed legacy version variable');
+  }
 
   return $ret;
 }
