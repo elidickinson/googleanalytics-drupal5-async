@@ -64,7 +64,12 @@ function googleanalytics_menu($maycache) {
       else {
         if($ga_version == GA_VERSION_ASYNC) {
           // async snippet (http://code.google.com/intl/fr/apis/analytics/docs/tracking/asyncTracking.html)
-          $script = "(function() {\n";
+          $script = '';
+          
+          // should set up vars before loading script in async mode
+          $script .= _googleanalytics_get_vars_script() . "\n";
+          
+          $script .= "(function() {\n";
           $script .= "var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;\n";
           $script .= "ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';\n";
           $script .= "var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);\n";
@@ -107,12 +112,8 @@ function googleanalytics_menu($maycache) {
   return $items;
 }
 
-/**
- * Implementation of hook_footer() to insert Javascript at the end of the page
- */
-function googleanalytics_footer($main = 0) {
+function _googleanalytics_get_vars_script() {
   global $user;
-
   $id = variable_get('googleanalytics_account', '');
 
   // 1. Check if the GA account number has a value.
@@ -190,7 +191,7 @@ function googleanalytics_footer($main = 0) {
     $codesnippet_after = variable_get('googleanalytics_codesnippet_after', '');
 
     // Which version of code should be used
-//    $script = 'try{';
+    $script = 'try{';
     switch($ga_version) {
       case GA_VERSION_LEGACY:
         $script .= '_uacct = '. drupal_to_js($id) .';';
@@ -220,7 +221,7 @@ function googleanalytics_footer($main = 0) {
         break;
       case GA_VERSION_ASYNC:
         $script .= 'var _gaq = _gaq || [];';
-        $script .= '_gaq.push([\'_setAccount\', \''. drupal_to_js($id) .'\']);';
+        $script .= '_gaq.push([\'_setAccount\', '. drupal_to_js($id) .']);';
         if (!empty($segmentation)) {
           $script .= $segmentation;
         }
@@ -233,13 +234,24 @@ function googleanalytics_footer($main = 0) {
         }
         break;
     }
+  }
+    $script .= '} catch(err) { window.console && console.log && console.log( err, "error setting GA vars" ); }';
+  return $script;
+}
 
-//    $script .= '} catch(err) {}';
-    
+/**
+ * Implementation of hook_footer() to insert Javascript at the end of the page
+ */
+function googleanalytics_footer($main = 0) {
+  $ga_version = variable_get('googleanalytics_version', 0);
+  
+  // In async mode, all vars were already included immediately before loading ga.js
+  if($ga_version != GA_VERSION_ASYNC) {
     $scope = variable_get('googleanalytics_js_scope', 'footer');
-    
+    $script = _googleanalytics_get_vars_script();
     drupal_add_js($script, 'inline', $scope);
   }
+  
 }
 
 /**

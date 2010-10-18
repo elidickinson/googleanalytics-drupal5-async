@@ -11,7 +11,6 @@ Drupal.gaTrackerAttach = function(context) {
     var isInternalSpecial = new RegExp("(\/go\/.*)$", "i");
     // Expression to check for download links.
     var isDownload = new RegExp("\\.(" + ga.trackDownloadExtensions + ")$", "i");
-
     try {
       // Is the clicked URL internal?
       if (isInternal.test(this.href)) {
@@ -76,7 +75,7 @@ Drupal.gaTrackerAttach = function(context) {
           }
         }
       }
-    } catch(err) {}
+    } catch(err) { window.console && console.log && console.log(err, "error tracking GA clicks" ); }
   });
 };
 
